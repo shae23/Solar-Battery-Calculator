@@ -1,0 +1,50 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: unzip -q SolarBatteryCalculator.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Unit tests and debug APK
+        working-directory: SolarBatteryCalculator
+        run: gradle --no-daemon testDebugUnitTest assembleDebug
+
+      - name: Name the APK
+        run: cp SolarBatteryCalculator/app/build/outputs/apk/debug/app-debug.apk SolarBatteryCalculator-${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solar-battery-calculator-debug
+          path: SolarBatteryCalculator-${{ github.run_number }}.apk
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v1.0.${{ github.run_number }}" \
+            "SolarBatteryCalculator-${{ github.run_number }}.apk" \
+            --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
+            --title "Solar Battery Calculator build ${{ github.run_number }}" \
+            --notes "Debug APK built from commit ${{ github.sha }}"
