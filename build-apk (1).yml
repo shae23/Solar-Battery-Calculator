@@ -1,0 +1,33 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: unzip -q SolarBatteryCalculator.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Unit tests and debug APK
+        working-directory: SolarBatteryCalculator
+        run: gradle --no-daemon testDebugUnitTest assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solar-battery-calculator-debug
+          path: SolarBatteryCalculator/app/build/outputs/apk/debug/app-debug.apk
